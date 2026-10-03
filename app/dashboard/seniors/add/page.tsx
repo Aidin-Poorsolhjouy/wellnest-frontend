@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { User, Smartphone, Watch, Mail, Lock, Loader2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import axios from 'axios';
+import { api } from '@/lib/api';
 
 export default function AddSeniorPage() {
   const router = useRouter();
@@ -31,9 +32,13 @@ export default function AddSeniorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      await axios.post('http://localhost:3000/users/create-senior', {
+      // await axios.post('http://localhost:3000/users/create-senior', {
+      //   caregiverId: user.id,
+      //   ...formData
+      // });
+      await api.post('/users/create-senior', {
         caregiverId: user.id,
-        ...formData
+        ...formData,
       });
 
       router.push('/dashboard/seniors');

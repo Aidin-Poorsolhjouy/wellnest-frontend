@@ -7,6 +7,7 @@ import {
   Smartphone, Watch, Phone, Droplets, ThumbsUp, RefreshCw, CheckCircle2, Loader2, Pill, Clock, Settings2, Plus, X, Edit2, Trash2, AlertCircle, Sliders
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import axios from 'axios';
 
 export default function SeniorDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -197,19 +198,22 @@ export default function SeniorDetailPage({ params }: { params: Promise<{ id: str
 
   const handleUnlinkDevice = async (deviceId: string) => {
     if(!confirm("Are you sure you want to unlink this device?")) return;
-    try { await axios.patch(`http://localhost:3000/users/devices/unassign/${deviceId}`); fetchData(); } catch (e) { alert("Failed to unlink device"); }
+    try { await api.patch(`/users/devices/unassign/${deviceId}`); fetchData(); } catch (e) { alert("Failed to unlink device"); }
   };
 
   const handleDeleteSenior = async () => {
     const confirmName = prompt(`To confirm deletion, type: ${senior?.first_name}`);
     if (confirmName !== senior?.first_name) return;
-    try { await axios.delete(`http://localhost:3000/users/senior/${seniorId}`); window.location.href = '/dashboard/seniors'; } catch (e) { alert("Failed to delete senior"); }
+    try { await api.delete(`/users/senior/${seniorId}`); window.location.href = '/dashboard/seniors'; } catch (e) { alert("Failed to delete senior"); }
   };
 
   const handleAddDevice = async () => {
     setAddDeviceLoading(true); setAddDeviceError('');
     try {
-      await axios.patch(`http://localhost:3000/users/assign-device/${seniorId}`, { serial: newDeviceSerial, type: newDeviceType });
+      await api.patch(`/users/assign-device/${seniorId}`, {
+  serial: newDeviceSerial,
+  type: newDeviceType,
+});
       await fetchData(); setNewDeviceSerial(''); setNewDeviceType('POD'); setShowAddDeviceForm(false);
     } catch (err: any) { setAddDeviceError(err.response?.data?.message || 'Failed to link device.'); } finally { setAddDeviceLoading(false); }
   };
