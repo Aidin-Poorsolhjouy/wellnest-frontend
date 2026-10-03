@@ -114,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
         <header className="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 relative"><Image src="/logo.png" alt="WellNest" fill className="object-contain" /></div>
+            <div className="w-8 h-8 relative"><Image src="/logo.png" alt="WellNest" fill className="object-contain" unoptimized/></div>
             <span className="font-bold text-slate-900">WellNest</span>
           </div>
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}><Menu className="h-6 w-6 text-slate-600" /></button>
