@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
-import axios from 'axios';
 
 export default function SeniorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -210,10 +209,7 @@ export default function SeniorDetailPage({ params }: { params: Promise<{ id: str
   const handleAddDevice = async () => {
     setAddDeviceLoading(true); setAddDeviceError('');
     try {
-      await api.patch(`/users/assign-device/${seniorId}`, {
-  serial: newDeviceSerial,
-  type: newDeviceType,
-});
+      await api.patch(`/users/assign-device/${seniorId}`, { serial: newDeviceSerial, type: newDeviceType });
       await fetchData(); setNewDeviceSerial(''); setNewDeviceType('POD'); setShowAddDeviceForm(false);
     } catch (err: any) { setAddDeviceError(err.response?.data?.message || 'Failed to link device.'); } finally { setAddDeviceLoading(false); }
   };

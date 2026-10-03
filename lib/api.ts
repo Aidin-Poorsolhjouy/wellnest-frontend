@@ -1,5 +1,3 @@
-// wellnest-frontend/lib/api.ts
-
 import axios from 'axios';
 
 const rawBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;

@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Users, Shield, HeartPulse, User as UserIcon, Trash2, Loader2, Search, Mail, Plus, Edit2, Link as LinkIcon, X, CheckSquare, Square } from 'lucide-react';
 import { api } from '@/lib/api';
-import axios from 'axios';
 
 type UserProfile = { id: string; first_name: string; last_name: string; email: string; role: 'ADMIN' | 'CAREGIVER' | 'SENIOR'; created_at: string; };
 
@@ -44,7 +43,6 @@ export default function AdminUsersPage() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault(); setProcessingId('add'); setFormError('');
     try {
-      // await axios.post('http://localhost:3000/users/admin-create', formData);
       await api.post('/users/admin-create', formData);
       await fetchUsers();
       setShowAddModal(false);
@@ -54,11 +52,7 @@ export default function AdminUsersPage() {
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault(); setProcessingId('edit'); setFormError('');
     try {
-      // await axios.patch(`http://localhost:3000/users/${formData.id}`, { firstName: formData.firstName, lastName: formData.lastName });
-      await api.patch(`/users/${formData.id}`, {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-      });
+      await api.patch(`/users/${formData.id}`, { firstName: formData.firstName, lastName: formData.lastName });
       await fetchUsers();
       setShowEditModal(false);
     } catch (err: any) { setFormError("Failed to update user."); } finally { setProcessingId(null); }
@@ -69,7 +63,6 @@ export default function AdminUsersPage() {
     if (!confirm(`Permanently delete ${name}?`)) return;
     setProcessingId(id);
     try {
-      // await axios.delete(`http://localhost:3000/users/senior/${id}`);
       await api.delete(`/users/senior/${id}`);
       setUsers(users.filter(u => u.id !== id));
     } catch (error) { alert("Failed to delete user."); } finally { setProcessingId(null); }
@@ -107,17 +100,10 @@ export default function AdminUsersPage() {
 
     try {
       if (isCurrentlyLinked) {
-        // await axios.delete('http://localhost:3000/users/relationships', { data: { caregiverId, seniorId } });
-        await api.delete('/users/relationships', {
-          data: { caregiverId, seniorId },
-        });
+        await api.delete('/users/relationships', { data: { caregiverId, seniorId } });
         setCurrentLinks(currentLinks.filter(id => id !== targetId));
       } else {
-        // await axios.post('http://localhost:3000/users/relationships', { caregiverId, seniorId });
-        await api.post('/users/relationships', {
-          caregiverId,
-          seniorId,
-        });
+        await api.post('/users/relationships', { caregiverId, seniorId });
         setCurrentLinks([...currentLinks, targetId]);
       }
     } catch (e) { alert("Failed to update assignment."); }

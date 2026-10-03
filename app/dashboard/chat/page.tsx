@@ -1,9 +1,9 @@
 // app/dashboard/chat/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User, Send, Loader2, MessageSquare } from 'lucide-react';
+import { Send, Loader2, MessageSquare } from 'lucide-react';
 
 type Senior = { id: string; first_name: string; last_name: string };
 type Message = { id: string; sender_id: string; receiver_id: string; content: string; created_at: string };
@@ -53,6 +53,13 @@ export default function ChatPage() {
   },[]);
 
 
+  // Auto-scroll to bottom of chat
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
   // 2. Fetch messages when a senior is selected & Subscribe to real-time
   useEffect(() => {
     if (!selectedSenior || !currentUserId) return;
@@ -93,14 +100,7 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedSenior, currentUserId]);
-
-  // Auto-scroll to bottom of chat
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
+  }, [selectedSenior, currentUserId, scrollToBottom]);
 
   // 3. Send a message
   const handleSendMessage = async (e: React.FormEvent) => {
