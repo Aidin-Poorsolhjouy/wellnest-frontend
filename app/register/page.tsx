@@ -65,7 +65,7 @@ export default function RegisterPage() {
         
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="bg-white p-6 rounded-3xl mb-8 shadow-2xl flex items-center justify-center w-32 h-32">
-            <Image src="/logo.png" alt="WellNest Logo" width={100} height={100} className="w-full h-auto object-contain" priority />
+            <Image src="/logo.png" alt="WellNest Logo" width={100} height={100} className="w-full h-auto object-contain" priority unoptimized/>
           </div>
           <h1 className="text-5xl font-extrabold mb-6 tracking-tight">Join WellNest</h1>
           <p className="text-xl text-purple-200 max-w-md font-light leading-relaxed">
@@ -80,7 +80,7 @@ export default function RegisterPage() {
           
           <div className="text-center mb-8 lg:hidden flex flex-col items-center">
             <div className="bg-white p-3 rounded-xl mb-4 shadow-md border border-slate-100">
-               <Image src="/logo.png" alt="WellNest Logo" width={50} height={50} className="w-12 h-auto" />
+               <Image src="/logo.png" alt="WellNest Logo" width={50} height={50} className="w-12 h-auto" unoptimized/>
             </div>
             <h1 className="text-3xl font-bold text-slate-900">WellNest</h1>
           </div>

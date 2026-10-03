@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="hidden md:flex w-64 flex-col bg-white border-r border-slate-200 fixed h-full z-10">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100">
           <div className="w-10 h-10 relative">
-             <Image src="/logo.png" alt="WellNest" fill className="object-contain" />
+             <Image src="/logo.png" alt="WellNest" fill className="object-contain" unoptimized/>
           </div>
           <span className="text-xl font-extrabold text-slate-900 tracking-tight">WellNest</span>
         </div>

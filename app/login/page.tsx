@@ -53,6 +53,7 @@ export default function LoginPage() {
               height={100} 
               className="w-full h-auto object-contain"
               priority
+              unoptimized
             />
           </div>
           <h1 className="text-5xl font-extrabold mb-6 tracking-tight">WellNest</h1>
@@ -76,6 +77,7 @@ export default function LoginPage() {
                 width={50} 
                 height={50} 
                 className="w-12 h-auto"
+                unoptimized
               />
             </div>
             <h1 className="text-3xl font-bold text-slate-900">WellNest</h1>
