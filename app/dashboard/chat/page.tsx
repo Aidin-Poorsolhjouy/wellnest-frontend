@@ -17,6 +17,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const[isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'CONNECTING' | 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED'>('CLOSED');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,68 +61,88 @@ export default function ChatPage() {
     }, 100);
   }, []);
 
-  // 2. Fetch messages when a senior is selected & Subscribe to real-time
+  // 2. Fetch messages when a contact is selected & subscribe to realtime.
   useEffect(() => {
     if (!selectedSenior || !currentUserId) return;
 
     let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    setRealtimeStatus('CONNECTING');
+    setMessages([]);
+
+    const mergeMessages = (incoming: Message[]) => {
+      setMessages((current) => {
+        const byId = new Map<string, Message>();
+        for (const message of current) byId.set(message.id, message);
+        for (const message of incoming) byId.set(message.id, message);
+        return Array.from(byId.values()).sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
+      });
+    };
 
     const fetchMessages = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('*')
         .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedSenior.id}),and(sender_id.eq.${selectedSenior.id},receiver_id.eq.${currentUserId})`)
         .order('created_at', { ascending: true });
 
       if (!active) return;
-      if (data) {
-        // Merge the fetched history with messages that may already have arrived
-        // through realtime while this query was in flight. Replacing state here
-        // can otherwise erase a just-received realtime message.
-        setMessages((current) => {
-          const byId = new Map<string, Message>();
-          for (const message of data as Message[]) byId.set(message.id, message);
-          for (const message of current) byId.set(message.id, message);
-          return Array.from(byId.values()).sort(
-            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-          );
-        });
-      }
+      if (!error && data) mergeMessages(data as Message[]);
       scrollToBottom();
     };
 
-    // Subscribe first. Once Supabase confirms the realtime channel is ready,
-    // fetch the full conversation. This closes the small window where a message
-    // could be committed after an initial fetch but before the subscription was live.
-    const channel = supabase
-      .channel(`chat-${currentUserId}-${selectedSenior.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          if (
-            (newMsg.sender_id === currentUserId && newMsg.receiver_id === selectedSenior.id) ||
-            (newMsg.sender_id === selectedSenior.id && newMsg.receiver_id === currentUserId)
-          ) {
-            setMessages((prev) =>
-              prev.some((message) => message.id === newMsg.id)
-                ? prev
-                : [...prev, newMsg],
-            );
-            scrollToBottom();
+    const startRealtime = async () => {
+      // REST calls can already be authenticated while the Realtime socket is still
+      // using the anonymous key. Explicitly sync the current access token before
+      // joining the channel so Postgres Changes RLS is evaluated as this user.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
+      if (!active) return;
+      channel = supabase
+        .channel(`chat-${currentUserId}-${selectedSenior.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            const newMsg = payload.new as Message;
+            if (
+              (newMsg.sender_id === currentUserId && newMsg.receiver_id === selectedSenior.id) ||
+              (newMsg.sender_id === selectedSenior.id && newMsg.receiver_id === currentUserId)
+            ) {
+              mergeMessages([newMsg]);
+              scrollToBottom();
+            }
+          },
+        )
+        .subscribe((status) => {
+          if (!active) return;
+          if (status === 'SUBSCRIBED') {
+            setRealtimeStatus('SUBSCRIBED');
+            // Re-sync after the channel is confirmed live so messages committed
+            // during channel setup are also present.
+            void fetchMessages();
+          } else if (status === 'CHANNEL_ERROR') {
+            setRealtimeStatus('CHANNEL_ERROR');
+          } else if (status === 'TIMED_OUT') {
+            setRealtimeStatus('TIMED_OUT');
+          } else if (status === 'CLOSED') {
+            setRealtimeStatus('CLOSED');
           }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          void fetchMessages();
-        }
-      });
+        });
+    };
+
+    void startRealtime();
 
     return () => {
       active = false;
-      void supabase.removeChannel(channel);
+      setRealtimeStatus('CLOSED');
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [selectedSenior, currentUserId, scrollToBottom]);
 
@@ -195,8 +216,18 @@ export default function ChatPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900">{selectedSenior.first_name} {selectedSenior.last_name}</h3>
-                <span className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Online
+                <span
+                  data-testid="chat-realtime-status"
+                  className={`text-xs font-medium flex items-center gap-1 ${
+                    realtimeStatus === 'SUBSCRIBED' ? 'text-emerald-500' : 'text-amber-500'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full inline-block ${
+                      realtimeStatus === 'SUBSCRIBED' ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  />
+                  {realtimeStatus === 'SUBSCRIBED' ? 'Online' : 'Connecting…'}
                 </span>
               </div>
             </div>
