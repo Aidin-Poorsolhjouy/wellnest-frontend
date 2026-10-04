@@ -74,7 +74,19 @@ export default function ChatPage() {
         .order('created_at', { ascending: true });
 
       if (!active) return;
-      if (data) setMessages(data);
+      if (data) {
+        // Merge the fetched history with messages that may already have arrived
+        // through realtime while this query was in flight. Replacing state here
+        // can otherwise erase a just-received realtime message.
+        setMessages((current) => {
+          const byId = new Map<string, Message>();
+          for (const message of data as Message[]) byId.set(message.id, message);
+          for (const message of current) byId.set(message.id, message);
+          return Array.from(byId.values()).sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          );
+        });
+      }
       scrollToBottom();
     };
 
