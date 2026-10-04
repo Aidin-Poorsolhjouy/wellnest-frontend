@@ -64,41 +64,52 @@ export default function ChatPage() {
   useEffect(() => {
     if (!selectedSenior || !currentUserId) return;
 
+    let active = true;
+
     const fetchMessages = async () => {
       const { data } = await supabase
         .from('messages')
         .select('*')
         .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedSenior.id}),and(sender_id.eq.${selectedSenior.id},receiver_id.eq.${currentUserId})`)
         .order('created_at', { ascending: true });
-      
+
+      if (!active) return;
       if (data) setMessages(data);
       scrollToBottom();
     };
 
-    fetchMessages();
-
-    // Subscribe to new incoming messages
+    // Subscribe first. Once Supabase confirms the realtime channel is ready,
+    // fetch the full conversation. This closes the small window where a message
+    // could be committed after an initial fetch but before the subscription was live.
     const channel = supabase
-      .channel(`chat-${selectedSenior.id}`)
+      .channel(`chat-${currentUserId}-${selectedSenior.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only add if it belongs to this conversation
           if (
             (newMsg.sender_id === currentUserId && newMsg.receiver_id === selectedSenior.id) ||
             (newMsg.sender_id === selectedSenior.id && newMsg.receiver_id === currentUserId)
           ) {
-            setMessages((prev) => [...prev, newMsg]);
+            setMessages((prev) =>
+              prev.some((message) => message.id === newMsg.id)
+                ? prev
+                : [...prev, newMsg],
+            );
             scrollToBottom();
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void fetchMessages();
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      void supabase.removeChannel(channel);
     };
   }, [selectedSenior, currentUserId, scrollToBottom]);
 
